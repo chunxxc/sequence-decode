@@ -43,8 +43,8 @@ epsilon=1e-08
 use_locking=False
 name='Adam'
 nbatch = 5000
-n_iter = 300
-eval_steps = 150
+n_iter = 500
+eval_steps = 50
 dropout = 0.25
 kmer = 3
 another = 1 # if test on multiple sets
@@ -54,7 +54,7 @@ print('creating the DNA dataset')
 
 dataset = DNAData(k=kmer,write_file=False)
 #dataset.check_balance()
-input_train,output_train,input_test, output_test = dataset.get_data()
+input_train,output_train,input_test, output_test= dataset.get_data()
 if another:
   input_test2, output_test2 = dataset.get_another_data()
 print('train set size: '+str(np.shape(input_train)[0]))
@@ -88,11 +88,11 @@ b4 = tf.Variable(tf.constant(0.1, shape=[M4]))
 x_norm = bnorm(x_input,op='fixed')
 Hf1 = tf.matmul(x_norm ,W1) + b1
 H1 = tf.nn.relu(Hf1)
-Hf2 = tf.matmul(bnorm(H1),W2) + b2
+Hf2 = tf.matmul(H1,W2) + b2
 H2 = tf.nn.relu(Hf2)
 #Hf3 = tf.matmul(H2,W3) + b3
 #H3 = tf.nn.relu(Hf3,is_training)
-H4 = tf.matmul(bnorm(H2),W4) + b4
+H4 = tf.matmul(H2,W4) + b4
 y = tf.nn.softmax(H4,name='y')
 #y_shape = H4.get_shape()
 #for i in range(kmer):
