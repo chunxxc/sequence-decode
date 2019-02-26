@@ -1,0 +1,2 @@
+model_checkpoint_path: "fivedatamodel-3000"
+all_model_checkpoint_paths: "fivedatamodel-3000"

@@ -1,0 +1,321 @@
+import sys
+#sys.path.append('chiron/chiron/utils')
+from os import walk
+import numpy as np
+import matplotlib.pyplot as plt
+from fast5_research import Fast5
+from Bio import SeqIO
+#from HMM_BW_DNA import base2num
+
+np.set_printoptions(threshold=sys.maxsize)
+
+
+class DNAData:
+  def __init__(self, k=4,step=1,length=300,mypath_raw_another='test-fast5-one',mypath_raw='raw-fast5-five',mypath_data = 'chiron-result-five', write_file=False):
+    self.k = k
+    if write_file:
+      input_fn = 'data-training/input_data.txt'
+      output_fn = 'data-training/output_data.txt'
+      myfile_input = open(input_fn,"w")
+      myfile_output = open(output_fn,"w")
+    for (_,_,fast5s) in walk(mypath_raw):
+      base_list = list()
+      raw_list = list()
+      raw_k_list = list()
+      base_o_list = list()
+      base_k_list = list()
+      base_seqk_list = list()
+      intsec = list()
+      #skip_count = 0
+      for fast5_fn in fast5s:
+        print('work for '+fast5_fn)
+        res_chiron = mypath_data+'/result/'+fast5_fn[:-5]+'fastq'
+        seq_idx = mypath_data+'/'+fast5_fn[:-5] + 'signalsegidx.txt'
+        raw_fn = mypath_raw +'/'+fast5_fn
+        f_seqidx = open(seq_idx,'r')
+        raw_fn = Fast5(raw_fn)
+        raw = raw_fn.get_read(raw=True)
+        print('has '+str(len(raw))+' raw data')
+        for record in SeqIO.parse(res_chiron,'fastq'):
+          base_seq = record.seq
+        base_list.append(base_seq)
+        #print(np.shape(intsec))
+        old_line = np.array([])
+        intsec = list()
+        #print('count: '+str(count))
+        #print('skip count: '+str(skip_count))
+        ##############################
+        # get one-step skip raw data for HMM
+        raw_len = len(raw)
+        raw_step_list = list()
+        for i in range(0,raw_len,step):
+          if len(raw[i:i+length]) == length:
+            raw_step_list.append(raw[i:i+length])
+        raw_list.append(np.asarray(raw_step_list))
+        ###############################
+        # get pair wise DNA kmer base for HMM
+        base_a = None
+        base_b = np.array([])
+        base_len = len(base_seq)
+        for i in range(base_len-k):
+          base_a = ''.join(base_seq[i:i+k])
+          base_o_list.append(base_a)
+          if len(base_b)>0:
+            base_seqk_list.append(np.stack((base_b,base_a)))
+          base_b = base_a
+        ################################
+        # get intersection and its corresponding raw data for classification training
+        count = 0
+        for line in f_seqidx:
+          count += 1
+          a_line = np.asarray(line.strip().split(' '))
+          a_line = a_line.astype(int)
+          if len(old_line)==0:
+            old_line = a_line
+            continue
+          for it in range(k-3,-1,-1):
+            if len(intsec)>=it+1:
+              if len(intsec)<it+2:
+                intsec.append(np.intersect1d(intsec[it],a_line))
+                #print(str(intsec))
+              else:
+                intsec[it+1] = np.intersect1d(intsec[it],a_line)
+                #print(str(intsec))
+          if len(intsec)==k-1:
+            if len(intsec[-1])!=0:
+              #print(str(intsec[k-2]))
+              num_intsec = len(intsec[-1])
+              indx = int(sorted(intsec[-1])[num_intsec//2-1]-1) #-1 since index is writen starts from 1
+              if count > 20:
+                if len(raw[indx*30:indx*30+300])==300:
+                  raw_k_list.append(raw[indx*30:indx*30+300])
+                  base_k_list.append(base_seq[count-k:count])
+                  if write_file:
+                    #myfile_input.write(' '.join(map(str,raw[indx*30:indx*30+300])))
+                    myfile_input.write(str(intsec)+' '+str(indx))
+                    myfile_input.write('\n')
+                    myfile_output.write(' '.join(base_seq[count-k:count]))
+                    myfile_output.write('\n')
+          if len(intsec)==0:
+            intsec.append(np.intersect1d(old_line,a_line))
+            #print(str(intsec))
+          else:
+            intsec[0] = np.intersect1d(old_line,a_line)
+            #print(str(intsec))
+          old_line = a_line
+
+    ####################################################################################
+    # data for HMM
+    self.raw_list = raw_list # collection of raw reads
+    self.base_list = base_list # collection of DNA chains
+    self.base_o_list = base_o_list # k-mer list for P_o
+    self.base_seqk_list = base_seqk_list # K-mer and its follower list for transition matrix
+    ####################################################################################
+    # data for classification 
+    self.output_table, self.output_basenum = DNAData.base2table(base_k_list,k) # K-mer list with number(k^4) instead of letter 
+    self.output_vec = DNAData.base2vec(base_k_list,k) # K-mer list with number(k*4) instead of letter
+    self.input_table = np.stack(raw_k_list)
+    self.raw_k_list = raw_k_list # raw read per 300 w.r.t base
+    
+########################################################################################
+# get another group of test data
+    for (_,_,fast5s) in walk(mypath_raw_another):
+      base_list = list()
+      raw_list = list()
+      raw_k_list = list()
+      base_o_list = list()
+      base_k_list = list()
+      base_seqk_list = list()
+      intsec = list()      
+      
+      print('getting another data set')
+      for fast5_fn in fast5s:
+        print('work for '+fast5_fn)
+        res_chiron = mypath_data+'/result/'+fast5_fn[:-5]+'fastq'
+        seq_idx = mypath_data+'/'+fast5_fn[:-5] + 'signalsegidx.txt'
+        raw_fn = mypath_raw_another +'/'+fast5_fn
+        f_seqidx = open(seq_idx,'r')
+        raw_fn = Fast5(raw_fn)
+        raw = raw_fn.get_read(raw=True)
+        print('has '+str(len(raw))+' raw data')
+        for record in SeqIO.parse(res_chiron,'fastq'):
+          base_seq = record.seq
+        ############################
+        # get the DNA base for HMM
+        base_list.append(base_seq)
+        old_line = np.array([])
+        intsec = list()
+        ##############################
+        # get one-step skip raw data for HMM
+        raw_step_list = list()
+        raw_len = len(raw)
+        for i in range(0,raw_len,step):
+          if len(raw[i:i+length]) == length:
+            raw_step_list.append(raw[i:i+length])
+        raw_list.append(np.asarray(raw_step_list))
+        ###############################
+        # get pair wise DNA kmer base for HMM
+        base_a = None
+        base_b = np.array([])
+        base_len = len(base_seq)
+        for i in range(base_len-k):
+          base_a = ''.join(base_seq[i:i+k])
+          base_o_list.append(base_a)
+          if len(base_b)>0:
+            base_seqk_list.append(np.stack((base_b,base_a)))
+          base_b = base_a
+        ################################
+        # get intersection and its corresponding raw data for classification training
+        count = 0
+        for line in f_seqidx:
+          count += 1
+          a_line = np.asarray(line.strip().split(' '))
+          a_line = a_line.astype(int)
+          if len(old_line)==0:
+            old_line = a_line
+            continue
+          for it in range(k-3,-1,-1):
+            if len(intsec)>=it+1:
+              if len(intsec)<it+2:
+                intsec.append(np.intersect1d(intsec[it],a_line))
+                #print(str(intsec))
+              else:
+                intsec[it+1] = np.intersect1d(intsec[it],a_line)
+                #print(str(intsec))
+          if len(intsec)==k-1:
+            if len(intsec[-1])!=0:
+              #print(str(intsec[k-2]))
+              num_intsec = len(intsec[-1])
+              indx = int(sorted(intsec[-1])[num_intsec//2-1]-1) #-1 since index is writen starts from 1
+              if count > 20:
+                if len(raw[indx*30:indx*30+300])==300:
+                  raw_k_list.append(raw[indx*30:indx*30+300])
+                  base_k_list.append(base_seq[count-k:count])
+                  if write_file:
+                    #myfile_input.write(' '.join(map(str,raw[indx*30:indx*30+300])))
+                    myfile_input.write(str(intsec)+' '+str(indx))
+                    myfile_input.write('\n')
+                    myfile_output.write(' '.join(base_seq[count-k:count]))
+                    myfile_output.write('\n')
+          if len(intsec)==0:
+            intsec.append(np.intersect1d(old_line,a_line))
+            #print(str(intsec))
+          else:
+            intsec[0] = np.intersect1d(old_line,a_line)
+            #print(str(intsec))
+          old_line = a_line      
+
+    ####################################################################################
+    # data for HMM
+    self.raw_list2 = raw_list # collection of raw reads
+    self.base_list2 = base_list # collection of DNA chains
+    self.base_o_list2 = base_o_list # k-mer list for P_o
+    self.base_seqk_list2 = base_seqk_list # K-mer and its follower list for transition matrix
+    ####################################################################################
+    # data for classification (intersections from chiron)
+    self.output_table2,self.output_basenum2 = DNAData.base2table(base_k_list,k) # K-mer list with number(k^4) instead of letter 
+    self.output_vec2 = DNAData.base2vec(base_k_list,k) # K-mer list with number(k*4) instead of letter
+    self.input_table2 = np.stack(raw_k_list)
+    self.raw_k_list2 = raw_k_list # raw read per 300 w.r.t base
+    if write_file:  
+      myfile_input.close()
+      myfile_output.close()
+  
+  @staticmethod
+  def base2table(bases,k=4):
+    # from ACTG to one-hot-coding table of 0~4^k
+    base_dict = {'A': 0, 'C': 1, 'G': 2, 'T': 3, 'a': 0, 'c': 1, 'g': 2, 't': 3}
+    num_kmer = len(bases)
+    output_idx = np.zeros((num_kmer,4**k))
+    output_basenum = np.zeros(num_kmer)
+    for j in range(num_kmer):
+      kmer = bases[j]
+      #print(kmer)
+      indx = 0
+      for i in range(k-1,-1,-1):
+        indx += base_dict[kmer[k-1-i]]*4**i
+      output_idx[j,int(indx)] = 1
+      output_basenum[j] = indx
+    return output_idx.astype(int), output_basenum  
+  @staticmethod
+  def base2vec(bases,k=4):
+    # from ACTG to one-hot-coding of 0~4*k
+    base_dict = {'A': 0, 'C': 1, 'G': 2, 'T': 3, 'a': 0, 'c': 1, 'g': 2, 't': 3}
+    num_kmer = len(bases)
+    output_vec =np.zeros((num_kmer,k*4))
+    for i in range(num_kmer):
+      for j in range(k):
+        output_vec[i,j*4+base_dict[bases[i][j]]] = int(1)
+    #output_vec = int(output_vec)
+    return output_vec.astype(int)
+  @staticmethod
+  def base2num(Z, K, op=False):
+    # for transfer base to indx
+    base_dict = {'A': 0, 'C': 1, 'G': 2, 'T': 3, 'a': 0, 'c': 1, 'g': 2, 't': 3}
+    base_dict_op = {0:'A', 1:'C', 2:'G', 3:'T'}
+    T = len(Z)
+    if not op:
+      Z_ = np.zeros(T)  
+      for i in range(T):
+        kmer = Z[i]
+        indx = 0
+        for j in range(K-1,-1,-1):
+          indx += base_dict[kmer[K-1-j]]*(4**j)
+        Z_[i] = indx
+      Z_ = Z_.astype(int)
+    else:
+      Z_ = list()
+      for i in range(T):
+        kmer = Z[i]
+        base = None
+        for j in range(K-1,-1,-1):
+          indx = kmer//(4**j)
+          kmer = kmer%(4**j)
+          if not base:
+            base = base_dict_op[indx]
+            continue
+          base += base_dict_op[indx] 
+        Z_.append(base)
+    return Z_
+  #################################################3
+  def check_balance(self):
+    kmer,dup = np.unique(self.output_basenum,return_counts=True)
+    mostk_num = np.argmax(dup)
+    mostk = DNAData.base2num([mostk_num],self.k,op=True)
+    dup = dup/np.sum(dup)
+    kmer2,dup2 = np.unique(self.output_basenum2,return_counts=True)
+    mostk_num2 = np.argmax(dup2)
+    mostk2 = DNAData.base2num([mostk_num2],self.k,op=True)
+    dup2 = dup2/np.sum(dup2)
+    
+    print('the train data has class: \n {'+str(kmer)+"} \n with each partation:\n "+str(dup) +' \n The most frequent kner is '+str(mostk_num)+' '+str(mostk))
+    print('the test data has class: \n {'+str(kmer2)+"} \n with each partation:\n "+str(dup2)+' \n The most frequent kner is '+str(mostk_num2)+' '+str(mostk2) )
+  ##################################################3
+  def get_data(self):
+    output_set = self.output_table
+    input_set = self.input_table
+    num_data,_ = np.shape(input_set)
+    indx = np.arange(num_data)
+    np.random.shuffle(indx)
+    
+    input_test = input_set[indx[(num_data//5)*4:num_data-1],:]
+    output_test = output_set[indx[(num_data//5)*4:num_data-1],:]
+    input_train = input_set[indx[0:(num_data//5)*4],:]
+    output_train = output_set[indx[0:(num_data//5)*4],:] 
+    return input_train, output_train, input_test, output_test
+  def get_another_data(self):
+    return self.input_table2,self.output_table2 
+  
+  
+  def get_ZX(self):
+    Z_o = self.base_o_list
+    Z_trans = self.base_seqk_list
+    numz = len(Z_trans)
+    Z_trans = Z_trans[0:numz//2]
+    X_test = self.raw_list
+    Z_test = self.base_list
+    return Z_trans, X_test, Z_test, Z_o
+  def get_another_ZX(self):
+    X_test = self.raw_list2
+    Z_test = self.base_list2
+    return X_test, Z_test
