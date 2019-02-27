@@ -31,7 +31,7 @@ def fetch_fn(args):
     f_seqidx = open(base_seq_idx,'r')
     raw_fn = Fast5(raw_fn)
     raw = raw_fn.get_read(raw=True)
-    yield base_seq, f_seqidx, raw
+    yield fast5_fn,base_seq, f_seqidx, raw
       
 class DNAData:
   def __init__(self, PARAMS):
@@ -51,7 +51,7 @@ class DNAData:
       intsec = list()
       #skip_count = 0
       fn_iter = fetch_fn(sys.argv[1:])
-      for base_seq, f_seqidx, raw in fn_iter:
+      for _,base_seq, f_seqidx, raw in fn_iter:
         print('has '+str(len(raw))+' raw data')
         base_list.append(base_seq)
         #print(np.shape(intsec))
