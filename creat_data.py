@@ -18,7 +18,7 @@ class Params(object):
       sys.exit(0)
     self.paths_a = sys.argv[1:3]
     self.paths_b = []
-    if len(sys.args)>2:
+    if len(sys.argv)>3:
       self.extra_testdata = True
       self.paths_b = list(sys.argv[i] for i in [1,3])
 PARAMS = Params()

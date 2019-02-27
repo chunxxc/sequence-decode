@@ -1,7 +1,6 @@
 # excute with:
 # > python3 test_readfile.py raw-fast5-three chiron-result-three
-# or
-# > python3 test_readfile.py raw-fast5-three chiron-result-three raw-fast5-one
+
 import sys
 from creat_data import fetch_fn as ff
 
