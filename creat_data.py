@@ -13,7 +13,13 @@ class Params(object):
     self.step = 1
     self.length = 300
     self.extra_testdata = False
-
+    if len(sys.argv)>3:
+      print('project only takes maximal 3 inputs!')
+      sys.exit(0)
+    self.paths_a = sys.argv[1:3]
+    self.paths_b = []
+    if len(sys.args)>2:
+      self.paths_b = list(sys.argv[i] for i in [1,3])
 PARAMS = Params()
 
 def fetch_fn(args):
