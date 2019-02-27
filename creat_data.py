@@ -55,15 +55,12 @@ class DNAData:
       base_seqk_list = list()
       intsec = list()
       #skip_count = 0
-      fn_iter = fetch_fn(sys.argv[1:])
+      fn_iter = fetch_fn(PARAMS.paths_a)
       for fn,base_seq, f_seqidx, raw in fn_iter:
         print(fn+'has '+str(len(raw))+' raw data')
         base_list.append(base_seq)
-        #print(np.shape(intsec))
         old_line = np.array([])
         intsec = list()
-        #print('count: '+str(count))
-        #print('skip count: '+str(skip_count))
         ##############################
         # get one-step skip raw data for HMM
         raw_len = len(raw)
@@ -139,7 +136,7 @@ class DNAData:
     
 ########################################################################################
 # get another group of test data
-    for (_,_,fast5s) in walk(mypath_raw_another):
+    if PARAMS.extra_testdata:
       base_list = list()
       raw_list = list()
       raw_k_list = list()
@@ -147,19 +144,10 @@ class DNAData:
       base_k_list = list()
       base_seqk_list = list()
       intsec = list()      
-      
+      fn_iter = fetch_fn(PARAMS.paths_b)
       print('getting another data set')
-      for fast5_fn in fast5s:
-        print('work for '+fast5_fn)
-        res_chiron = mypath_data+'/result/'+fast5_fn[:-5]+'fastq'
-        seq_idx = mypath_data+'/'+fast5_fn[:-5] + 'signalsegidx.txt'
-        raw_fn = mypath_raw_another +'/'+fast5_fn
-        f_seqidx = open(seq_idx,'r')
-        raw_fn = Fast5(raw_fn)
-        raw = raw_fn.get_read(raw=True)
-        print('has '+str(len(raw))+' raw data')
-        for record in SeqIO.parse(res_chiron,'fastq'):
-          base_seq = record.seq
+      for fn,base_seq, f_seqidx, raw in fn_iter:
+        print(fn+'has '+str(len(raw))+' raw data')
         ############################
         # get the DNA base for HMM
         base_list.append(base_seq)
