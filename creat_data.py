@@ -25,8 +25,8 @@ def fetch_fn(args):
     fast5_fn = os.fsdecode(file)
     result_chiron = mypath_data+'/result/'+fast5_fn[:-5]+'fastq'
     for record in SeqIO.parse(result_chiron,'fastq'):
-      base_seq = record.seq
-    base_seq_idx = append(mypath_data+'/'+fast5_fn[:-5] + 'signalsegidx.txt'
+      base_seq = record.seq # one sequence per file
+    base_seq_idx = mypath_data+'/'+fast5_fn[:-5] + 'signalsegidx.txt'
     raw_fn = mypath_raw +'/'+fast5_fn
     f_seqidx = open(base_seq_idx,'r')
     raw_fn = Fast5(raw_fn)
