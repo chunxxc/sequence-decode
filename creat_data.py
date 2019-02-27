@@ -4,14 +4,22 @@ import numpy as np
 import matplotlib.pyplot as plt
 from fast5_research import Fast5
 from Bio import SeqIO
-
 np.set_printoptions(threshold=sys.maxsize)
 
+class Params(object):
+  def __init__(self):
+    self.Kmer = 4
+    self.write_file = False
+    self.step = 1
+    self.length = 300
+    self.extra_testdata = False
 
+PARAMS = Params()
+    
 class DNAData:
-  def __init__(self, k=4,step=1,length=300,mypath_raw_another='test-fast5-one',mypath_raw='raw-fast5-five',mypath_data = 'chiron-result-five', write_file=False):
-    self.k = k
-    if write_file:
+  def __init__(self, PARAMS, mypath_raw_another='test-fast5-one',mypath_raw='raw-fast5-five',mypath_data = 'chiron-result-five'):
+    self.k = PARAMS.Kmer
+    if PARAMS.write_file:
       input_fn = 'data-training/input_data.txt'
       output_fn = 'data-training/output_data.txt'
       myfile_input = open(input_fn,"w")
