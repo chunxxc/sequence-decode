@@ -1,11 +1,9 @@
 import sys
-#sys.path.append('chiron/chiron/utils')
 from os import walk
 import numpy as np
 import matplotlib.pyplot as plt
 from fast5_research import Fast5
 from Bio import SeqIO
-#from HMM_BW_DNA import base2num
 
 np.set_printoptions(threshold=sys.maxsize)
 
