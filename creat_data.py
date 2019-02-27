@@ -19,14 +19,13 @@ class Params(object):
     self.paths_a = sys.argv[1:3]
     self.paths_b = []
     if len(sys.args)>2:
+      self.extra_testdata = True
       self.paths_b = list(sys.argv[i] for i in [1,3])
 PARAMS = Params()
 
-def fetch_fn(args):
-  mypath_raw= args[0]
-  mypath_data = args[1]
-  if len(args)>2:
-    mypath_raw_another = args[2]
+def fetch_fn(paths):
+  mypath_raw= paths[0]
+  mypath_data = paths[1]
   for file in os.listdir(mypath_raw):
     fast5_fn = os.fsdecode(file)
     result_chiron = mypath_data+'/result/'+fast5_fn[:-5]+'fastq'
