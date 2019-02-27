@@ -16,10 +16,11 @@ class Params(object):
 
 PARAMS = Params()
 
-def fetch_fn():
-  mypath_raw='raw-fast5-five'
-  mypath_data = 'chiron-result-five'
-  mypath_raw_another = 'test-fast5-one'
+def fetch_fn(args):
+  mypath_raw= args[0]
+  mypath_data = args[1]
+  if len(args)>2:
+    mypath_raw_another = args[2]
   for file in os.listdir(mypath_raw):
     fast5_fn = os.fsdecode(file)
     result_chiron = mypath_data+'/result/'+fast5_fn[:-5]+'fastq'
@@ -49,7 +50,7 @@ class DNAData:
       base_seqk_list = list()
       intsec = list()
       #skip_count = 0
-      fn_iter = fetch_fn()
+      fn_iter = fetch_fn(sys.argv[1:])
       for base_seq, f_seqidx, raw in fn_iter:
         print('has '+str(len(raw))+' raw data')
         base_list.append(base_seq)
