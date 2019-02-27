@@ -18,5 +18,6 @@ pip3 install biopython
 pip3 install tqdm
 pip3 install fast5_research
 pip3 install matplotlab
+pip3 install tables
 ```
 The project also requires Tensorflow. Please install it following the instructions: https://www.tensorflow.org/install
