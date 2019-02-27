@@ -1,7 +1,7 @@
 # excute with:
-# > python3 test_readfile.py raw-fast5-five chiron-result-five
+# > python3 test_readfile.py raw-fast5-three chiron-result-three
 # or
-# > python3 test_readfile.py raw-fast5-five chiron-result-five raw-fast5-one
+# > python3 test_readfile.py raw-fast5-three chiron-result-three raw-fast5-one
 import sys
 from creat_data import fetch_fn as ff
 
@@ -11,4 +11,4 @@ for fn, base_seq, f_seqidx, raw in fn_iter:
   print(base_seq) # print a sequence of 'A','C','G','T'
   print(f_seqidx) # print an io.TextIOWrapper match name of fn print
   print(len(raw)) # print a number
-# a loop of five
+# a loop of three

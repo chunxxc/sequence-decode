@@ -51,8 +51,8 @@ class DNAData:
       intsec = list()
       #skip_count = 0
       fn_iter = fetch_fn(sys.argv[1:])
-      for _,base_seq, f_seqidx, raw in fn_iter:
-        print('has '+str(len(raw))+' raw data')
+      for fn,base_seq, f_seqidx, raw in fn_iter:
+        print(fn+'has '+str(len(raw))+' raw data')
         base_list.append(base_seq)
         #print(np.shape(intsec))
         old_line = np.array([])
