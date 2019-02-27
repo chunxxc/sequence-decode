@@ -1,5 +1,5 @@
 import sys
-from os import walk
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 from fast5_research import Fast5
@@ -15,16 +15,32 @@ class Params(object):
     self.extra_testdata = False
 
 PARAMS = Params()
-    
+
+def fetch_fn():
+  mypath_raw='raw-fast5-five'
+  mypath_data = 'chiron-result-five'
+  mypath_raw_another = 'test-fast5-one'
+  for file in os.listdir(mypath_raw):
+    fast5_fn = os.fsdecode(file)
+    result_chiron = mypath_data+'/result/'+fast5_fn[:-5]+'fastq'
+    for record in SeqIO.parse(result_chiron,'fastq'):
+      base_seq = record.seq
+    base_seq_idx = append(mypath_data+'/'+fast5_fn[:-5] + 'signalsegidx.txt'
+    raw_fn = mypath_raw +'/'+fast5_fn
+    f_seqidx = open(base_seq_idx,'r')
+    raw_fn = Fast5(raw_fn)
+    raw = raw_fn.get_read(raw=True)
+    yield base_seq, f_seqidx, raw
+      
 class DNAData:
-  def __init__(self, PARAMS, mypath_raw_another='test-fast5-one',mypath_raw='raw-fast5-five',mypath_data = 'chiron-result-five'):
+  def __init__(self, PARAMS):
     self.k = PARAMS.Kmer
     if PARAMS.write_file:
       input_fn = 'data-training/input_data.txt'
       output_fn = 'data-training/output_data.txt'
       myfile_input = open(input_fn,"w")
       myfile_output = open(output_fn,"w")
-    for (_,_,fast5s) in walk(mypath_raw):
+    
       base_list = list()
       raw_list = list()
       raw_k_list = list()
@@ -33,17 +49,9 @@ class DNAData:
       base_seqk_list = list()
       intsec = list()
       #skip_count = 0
-      for fast5_fn in fast5s:
-        print('work for '+fast5_fn)
-        res_chiron = mypath_data+'/result/'+fast5_fn[:-5]+'fastq'
-        seq_idx = mypath_data+'/'+fast5_fn[:-5] + 'signalsegidx.txt'
-        raw_fn = mypath_raw +'/'+fast5_fn
-        f_seqidx = open(seq_idx,'r')
-        raw_fn = Fast5(raw_fn)
-        raw = raw_fn.get_read(raw=True)
+      fn_iter = fetch_fn()
+      for base_seq, f_seqidx, raw in fn_iter:
         print('has '+str(len(raw))+' raw data')
-        for record in SeqIO.parse(res_chiron,'fastq'):
-          base_seq = record.seq
         base_list.append(base_seq)
         #print(np.shape(intsec))
         old_line = np.array([])
