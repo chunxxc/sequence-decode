@@ -23,7 +23,22 @@ class Params(object):
       self.paths_b = list(sys.argv[i] for i in [1,3])
 PARAMS = Params()
 
-def fetch_fn(paths):
+def fetch_HMM_fn(paths):
+  mypath_raw= paths[0]
+  mypath_data = paths[1]
+  for file in os.listdir(mypath_raw):
+    # generate the three kinds of file name strings
+    fast5_fn = os.fsdecode(file)
+    result_chiron_fn = mypath_data+'/result/'+fast5_fn[:-5]+'fastq' # the base sequence
+    raw_fn = mypath_raw +'/'+fast5_fn # raw reads/inputs file
+    # generate three data objects iterator
+    for record in SeqIO.parse(result_chiron_fn,'fastq'):
+      base_seq = record.seq # only one sequence per file
+    raw_fn = Fast5(raw_fn)
+    raw = raw_fn.get_read(raw=True)
+    yield fast5_fn,base_seq, raw
+
+def fetch_classif_fn(paths)
   mypath_raw= paths[0]
   mypath_data = paths[1]
   for file in os.listdir(mypath_raw):
@@ -40,48 +55,54 @@ def fetch_fn(paths):
     raw = raw_fn.get_read(raw=True)
     yield fast5_fn,base_seq, f_seqidx, raw
 
-def classif_data(f_seqidx):
+
+
+def classif_data():
   base_k_list = list()
   raw_k_list = list()
-  old_line = np.array([])
-  intsec = list()
-  count = 0
-  for line in f_seqidx:
-    count += 1
-    a_line = np.asarray(line.strip().split(' '))
-    a_line = a_line.astype(int)
-    if len(old_line)==0:
+  fn_iter = fetch_classif_fn(PARAMS.paths_a)
+  for fn,base_seq, f_seqidx, raw in fn_iter:
+    print(fn+'has '+str(len(raw))+' raw data')
+    old_line = np.array([])
+    intsec = list()
+    count = 0
+    for line in f_seqidx:
+      count += 1
+      a_line = np.asarray(line.strip().split(' '))
+      a_line = a_line.astype(int)
+      if len(old_line)==0:
+        old_line = a_line
+        continue
+      for it in range(k-3,-1,-1):
+        if len(intsec)>=it+1:
+          if len(intsec)<it+2:
+            intsec.append(np.intersect1d(intsec[it],a_line))
+          else:
+            intsec[it+1] = np.intersect1d(intsec[it],a_line)
+      if len(intsec)==k-1:
+        if len(intsec[-1])!=0:
+          num_intsec = len(intsec[-1])
+          indx = int(sorted(intsec[-1])[num_intsec//2-1]-1) #-1 since index is writen starts from 1
+          if count > 20:
+            if len(raw[indx*30:indx*30+300])==300:
+              raw_k_list.append(raw[indx*30:indx*30+300])
+              base_k_list.append(base_seq[count-k:count])
+              if PARAMS.write_file:
+                #myfile_input.write(' '.join(map(str,raw[indx*30:indx*30+300])))
+                myfile_input.write(str(intsec)+' '+str(indx))
+                myfile_input.write('\n')
+                myfile_output.write(' '.join(base_seq[count-k:count]))
+                myfile_output.write('\n')
+      if len(intsec)==0:
+        intsec.append(np.intersect1d(old_line,a_line))
+        #print(str(intsec))
+      else:
+        intsec[0] = np.intersect1d(old_line,a_line)
+        #print(str(intsec))
       old_line = a_line
-      continue
-    for it in range(k-3,-1,-1):
-      if len(intsec)>=it+1:
-        if len(intsec)<it+2:
-          intsec.append(np.intersect1d(intsec[it],a_line))
-        else:
-          intsec[it+1] = np.intersect1d(intsec[it],a_line)
-    if len(intsec)==k-1:
-      if len(intsec[-1])!=0:
-        num_intsec = len(intsec[-1])
-        indx = int(sorted(intsec[-1])[num_intsec//2-1]-1) #-1 since index is writen starts from 1
-        if count > 20:
-          if len(raw[indx*30:indx*30+300])==300:
-            raw_k_list.append(raw[indx*30:indx*30+300])
-            base_k_list.append(base_seq[count-k:count])
-            if PARAMS.write_file:
-              #myfile_input.write(' '.join(map(str,raw[indx*30:indx*30+300])))
-              myfile_input.write(str(intsec)+' '+str(indx))
-              myfile_input.write('\n')
-              myfile_output.write(' '.join(base_seq[count-k:count]))
-              myfile_output.write('\n')
-    if len(intsec)==0:
-      intsec.append(np.intersect1d(old_line,a_line))
-      #print(str(intsec))
-    else:
-      intsec[0] = np.intersect1d(old_line,a_line)
-      #print(str(intsec))
-    old_line = a_line
-  f_seqidx.close()
+    f_seqidx.close()
   return raw_k_list, base_k_list
+
 def HMM_data():
   # data for HMM
   #self.raw_list ~ collection of raw reads
@@ -92,8 +113,8 @@ def HMM_data():
   raw_list = list()
   base_o_list = list()
   base_seqk_list = list()
-  fn_iter = fetch_fn(PARAMS.paths_a)
-  for fn,base_seq, f_seqidx, raw in fn_iter:
+  fn_iter = fetch_HMM_fn(PARAMS.paths_a)
+  for fn,base_seq, raw in fn_iter:
     print(fn+'has '+str(len(raw))+' raw data')
     base_list.append(base_seq)
     ##############################
