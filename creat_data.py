@@ -58,6 +58,11 @@ def fetch_classif_fn(paths)
 
 
 def classif_data():
+  if PARAMS.write_file:
+    input_fn = 'data-training/input_data.txt'
+    output_fn = 'data-training/output_data.txt'
+    myfile_input = open(input_fn,"w")
+    myfile_output = open(output_fn,"w")
   base_k_list = list()
   raw_k_list = list()
   fn_iter = fetch_classif_fn(PARAMS.paths_a)
@@ -101,6 +106,9 @@ def classif_data():
         #print(str(intsec))
       old_line = a_line
     f_seqidx.close()
+    if PARAMS.write_file:  
+      myfile_input.close()
+      myfile_output.close()
   return raw_k_list, base_k_list
 
 def HMM_data():
@@ -144,11 +152,6 @@ class DNAData(object):
   ###################################################################################
   # get intersection and its corresponding raw data for classification training  
   def get_HMM_data(self):
-    if PARAMS.write_file:
-      input_fn = 'data-training/input_data.txt'
-      output_fn = 'data-training/output_data.txt'
-      myfile_input = open(input_fn,"w")
-      myfile_output = open(output_fn,"w")
     self.raw_list, self.base_list, self.base_o_list, self.base_seqk_list = HMM_data()
   ####################################################################################
   # data for classification
