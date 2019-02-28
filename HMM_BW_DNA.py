@@ -7,40 +7,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 from creat_data import DNAData
+from utils_dna import base2num
 import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 np.set_printoptions(threshold=sys.maxsize)
 #CHECKPOINT_PATH = ./checkpoints/
 ###########################################################################################################
 class HMM_DNA:  
-  def base2num(Z, K, op=False):
-    # for transfer base to indx
-    base_dict = {'A': 0, 'C': 1, 'G': 2, 'T': 3, 'a': 0, 'c': 1, 'g': 2, 't': 3}
-    base_dict_op = {0:'A', 1:'C', 2:'G', 3:'T'}
-    T = len(Z)
-    if not op:
-      Z_ = np.zeros(T)  
-      for i in range(T):
-        kmer = Z[i]
-        indx = 0
-        for j in range(K-1,-1,-1):
-          indx += base_dict[kmer[K-1-j]]*(4**j)
-        Z_[i] = indx
-      Z_ = Z_.astype(int)
-    else:
-      Z_ = list()
-      for i in range(T):
-        kmer = Z[i]
-        base = None
-        for j in range(K-1,-1,-1):
-          indx = kmer//(4**j)
-          kmer = kmer%(4**j)
-          if not base:
-            base = base_dict_op[indx]
-            continue
-          base += base_dict_op[indx] 
-        Z_.append(base)
-    return Z_
   def A_init(K):
     base_dict_op = {0:'A', 1:'C', 2:'G', 3:'T'}
     A = np.zeros((4**K,4**K))

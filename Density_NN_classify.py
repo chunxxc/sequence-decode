@@ -7,7 +7,7 @@ import numpy as np
 import tensorflow as tf
 from creat_data import DNAData
 import matplotlib.pyplot as plt
-from HMM_BW_DNA import HMM_DNA
+from utils_dna import base2num
 np.set_printoptions(threshold=sys.maxsize)
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 def bnorm(x,op='normal',mu = 75, sigma = 25):
@@ -18,7 +18,6 @@ def bnorm(x,op='normal',mu = 75, sigma = 25):
     return x
   if op == 'normal':
     shape = x.get_shape().as_list()
-    
     gamma = tf.Variable(tf.ones(shape[len(shape)-1]))
     beta = tf.Variable(tf.zeros(shape[len(shape)-1]))
     batch_mean,batch_var = tf.nn.moments(x,np.arange(len(shape)).tolist())
@@ -235,8 +234,8 @@ if write_file:
       #myfile.write(str(var.name)+'\n'+str(val)+'\n')
   if write_pred:  
     myfile.write('predicted states:'+str(pred)+'\n')
-    myfile.write('predicted states:'+str(HMM_DNA.base2num(np.argmax(pred2,axis=1),kmer,op=True))+'\n')
-    myfile.write('true states S_t:'+str(HMM_DNA.base2num(np.argmax(output_test2,axis=1),kmer,op=True))+'\n')
+    myfile.write('predicted states:'+str(base2num(np.argmax(pred2,axis=1),kmer,op=True))+'\n')
+    myfile.write('true states S_t:'+str(base2num(np.argmax(output_test2,axis=1),kmer,op=True))+'\n')
   #myfile.write('input states S_(t-1):'+str(np.argmax(input_test[:,1000:1003],axis=1)+1)+'\n')
   #myfile.write('first layer weight on input is: '+'\n'+str(tf.get_collection(tf.GraphKeys.WIGHTS))+'\n')
   myfile.close()
