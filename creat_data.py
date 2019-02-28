@@ -57,7 +57,7 @@ def fetch_classif_fn(paths)
 
 
 
-def classif_data():
+def classif_data(paths):
   if PARAMS.write_file:
     input_fn = 'data-training/input_data.txt'
     output_fn = 'data-training/output_data.txt'
@@ -65,7 +65,7 @@ def classif_data():
     myfile_output = open(output_fn,"w")
   base_k_list = list()
   raw_k_list = list()
-  fn_iter = fetch_classif_fn(PARAMS.paths_a)
+  fn_iter = fetch_classif_fn(paths)
   for fn,base_seq, f_seqidx, raw in fn_iter:
     print(fn+'has '+str(len(raw))+' raw data')
     old_line = np.array([])
@@ -111,7 +111,7 @@ def classif_data():
       myfile_output.close()
   return raw_k_list, base_k_list
 
-def HMM_data():
+def HMM_data(paths):
   # data for HMM
   #self.raw_list ~ collection of raw reads
   #self.base_list ~ collection of DNA chains
@@ -121,7 +121,7 @@ def HMM_data():
   raw_list = list()
   base_o_list = list()
   base_seqk_list = list()
-  fn_iter = fetch_HMM_fn(PARAMS.paths_a)
+  fn_iter = fetch_HMM_fn(paths)
   for fn,base_seq, raw in fn_iter:
     print(fn+'has '+str(len(raw))+' raw data')
     base_list.append(base_seq)
@@ -151,111 +151,22 @@ class DNAData(object):
     self.k = PARAMS.Kmer
   ###################################################################################
   # get intersection and its corresponding raw data for classification training  
-  def get_HMM_data(self):
-    self.raw_list, self.base_list, self.base_o_list, self.base_seqk_list = HMM_data()
+  def for_HMM(self):
+    self.raw_list, self.base_list, self.base_o_list, self.base_seqk_list = HMM_data(PARAMS.paths_a)
+    if PARAMS.extra_testdata:
+        self.raw_list_another, self.base_list_another,_,_ = HMM_data(PARAMS.paths_b)
   ####################################################################################
   # data for classification
-  def get_classif_data(self):
-    raw_k_list, base_k_list = classif_data()
+  def for_classif(self):
+    raw_k_list, base_k_list = classif_data(PARAMS.paths_a)
     self.output_table, self.output_basenum = DNAData.base2table(base_k_list,self.k) # K-mer list with number(k^4) instead of letter 
     #self.output_vec = DNAData.base2vec(base_k_list,k) # K-mer list with number(k*4) instead of letter
     self.input_table = np.stack(raw_k_list)
-    self.raw_k_list = raw_k_list # raw read per 300 w.r.t base
-
-########################################################################################
-# get another group of test data
     if PARAMS.extra_testdata:
-      base_list = list()
-      raw_list = list()
-      raw_k_list = list()
-      base_o_list = list()
-      base_k_list = list()
-      base_seqk_list = list()
-      intsec = list()      
-      fn_iter = fetch_fn(PARAMS.paths_b)
-      print('getting another data set')
-      for fn,base_seq, f_seqidx, raw in fn_iter:
-        print(fn+'has '+str(len(raw))+' raw data')
-        ############################
-        # get the DNA base for HMM
-        base_list.append(base_seq)
-        old_line = np.array([])
-        intsec = list()
-        ##############################
-        # get one-step skip raw data for HMM
-        raw_step_list = list()
-        raw_len = len(raw)
-        for i in range(0,raw_len,step):
-          if len(raw[i:i+length]) == length:
-            raw_step_list.append(raw[i:i+length])
-        raw_list.append(np.asarray(raw_step_list))
-        ###############################
-        # get pair wise DNA kmer base for HMM
-        base_a = None
-        base_b = np.array([])
-        base_len = len(base_seq)
-        for i in range(base_len-k):
-          base_a = ''.join(base_seq[i:i+k])
-          base_o_list.append(base_a)
-          if len(base_b)>0:
-            base_seqk_list.append(np.stack((base_b,base_a)))
-          base_b = base_a
-        ################################
-        # get intersection and its corresponding raw data for classification training
-        count = 0
-        for line in f_seqidx:
-          count += 1
-          a_line = np.asarray(line.strip().split(' '))
-          a_line = a_line.astype(int)
-          if len(old_line)==0:
-            old_line = a_line
-            continue
-          for it in range(k-3,-1,-1):
-            if len(intsec)>=it+1:
-              if len(intsec)<it+2:
-                intsec.append(np.intersect1d(intsec[it],a_line))
-                #print(str(intsec))
-              else:
-                intsec[it+1] = np.intersect1d(intsec[it],a_line)
-                #print(str(intsec))
-          if len(intsec)==k-1:
-            if len(intsec[-1])!=0:
-              #print(str(intsec[k-2]))
-              num_intsec = len(intsec[-1])
-              indx = int(sorted(intsec[-1])[num_intsec//2-1]-1) #-1 since index is writen starts from 1
-              if count > 20:
-                if len(raw[indx*30:indx*30+300])==300:
-                  raw_k_list.append(raw[indx*30:indx*30+300])
-                  base_k_list.append(base_seq[count-k:count])
-                  if write_file:
-                    #myfile_input.write(' '.join(map(str,raw[indx*30:indx*30+300])))
-                    myfile_input.write(str(intsec)+' '+str(indx))
-                    myfile_input.write('\n')
-                    myfile_output.write(' '.join(base_seq[count-k:count]))
-                    myfile_output.write('\n')
-          if len(intsec)==0:
-            intsec.append(np.intersect1d(old_line,a_line))
-            #print(str(intsec))
-          else:
-            intsec[0] = np.intersect1d(old_line,a_line)
-            #print(str(intsec))
-          old_line = a_line      
-
-    ####################################################################################
-    # data for HMM
-    self.raw_list2 = raw_list # collection of raw reads
-    self.base_list2 = base_list # collection of DNA chains
-    self.base_o_list2 = base_o_list # k-mer list for P_o
-    self.base_seqk_list2 = base_seqk_list # K-mer and its follower list for transition matrix
-    ####################################################################################
-    # data for classification (intersections from chiron)
-    self.output_table2,self.output_basenum2 = DNAData.base2table(base_k_list,k) # K-mer list with number(k^4) instead of letter 
-    self.output_vec2 = DNAData.base2vec(base_k_list,k) # K-mer list with number(k*4) instead of letter
-    self.input_table2 = np.stack(raw_k_list)
-    self.raw_k_list2 = raw_k_list # raw read per 300 w.r.t base
-    if write_file:  
-      myfile_input.close()
-      myfile_output.close()
+      raw_k_list, base_k_list = classif_data(PARAMS.paths_b)
+      self.output_table_another, self.output_basenum_another = DNAData.base2table(base_k_list,self.k) # K-mer list with number(k^4) instead of letter 
+      #self.output_vec = DNAData.base2vec(base_k_list,k) # K-mer list with number(k*4) instead of letter
+      self.input_table_another = np.stack(raw_k_list)
   
   @staticmethod
   def base2table(bases,k=4):
