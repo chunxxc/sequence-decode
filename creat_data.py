@@ -188,7 +188,6 @@ class DNAData(object):
     num_data,_ = np.shape(input_set)
     indx = np.arange(num_data)
     np.random.shuffle(indx)
-    
     input_test = input_set[indx[(num_data//5)*4:num_data-1],:]
     output_test = output_set[indx[(num_data//5)*4:num_data-1],:]
     input_train = input_set[indx[0:(num_data//5)*4],:]
